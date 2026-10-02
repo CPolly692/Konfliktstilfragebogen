@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Konfliktstilfragebogen</title>
+<style>
+body{font-family:Arial,sans-serif;background:#f4f6f8;color:#24313d;margin:0}.wrap{max-width:820px;margin:auto;padding:24px 16px}
+.card{background:#fff;padding:28px;border-radius:16px;box-shadow:0 3px 18px #00000012;margin-bottom:18px}
+h1{margin-top:0}.muted{color:#65727e}.q{font-size:18px;font-weight:bold;margin:20px 0}
+.progress{height:8px;background:#e8ecef;border-radius:8px;overflow:hidden}.progress div{height:100%;background:#496b82}
+.scale{display:flex;justify-content:space-between;color:#65727e;font-size:13px;margin:14px 0 7px}
+.choices{display:grid;grid-template-columns:repeat(7,1fr);gap:7px}.choices input{position:absolute;opacity:0}
+.choices label{padding:13px 4px;text-align:center;border:1px solid #dce2e7;border-radius:9px;font-weight:bold;cursor:pointer}
+.choices input:checked+label{background:#496b82;color:#fff;border-color:#496b82}
+button{background:#496b82;color:white;border:0;border-radius:9px;padding:12px 20px;font-size:16px;cursor:pointer}
+.secondary{background:#e8ecef;color:#24313d}.actions{display:flex;justify-content:space-between;margin-top:22px}
+.error{color:#a13d3d;font-weight:bold;min-height:24px}.results{display:none}
+.row{margin:18px 0}.head{display:flex;justify-content:space-between;font-weight:bold}.bar{height:14px;background:#e8ecef;border-radius:9px;overflow:hidden;margin-top:6px}.bar div{height:100%;background:#496b82}
+.winner{background:#eef3f6;border-radius:12px;padding:18px;margin-top:25px}
+@media(max-width:500px){.card{padding:20px}.choices{gap:4px}.choices label{padding:11px 2px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<section class="card" id="intro">
+<h1>Konfliktstilfragebogen</h1>
+<p class="muted">Nach Bléré</p>
+<p><b>Wie sehr treffen die folgenden Aussagen auf mein Verhalten in Konflikten zu?</b></p>
+<p><b>1 = überhaupt nicht &nbsp;&nbsp; 7 = hundertprozentig</b></p>
+<p class="muted">Die Antworten werden nur in diesem Browser ausgewertet. Es werden keine Daten gespeichert oder übertragen.</p>
+<button onclick="start()">Fragebogen starten</button>
+</section>
+
+<section class="card" id="quiz" style="display:none">
+<b id="counter"></b><div class="progress"><div id="prog"></div></div>
+<div class="q" id="q"></div>
+<div class="scale"><span>Überhaupt nicht</span><span>Hundertprozentig</span></div>
+<div class="choices" id="choices"></div>
+<div class="error" id="err"></div>
+<div class="actions"><button class="secondary" onclick="prev()">Zurück</button><button onclick="next()" id="next">Weiter</button></div>
+</section>
+
+<section class="card results" id="results">
+<h1>Dein Konfliktprofil</h1>
+<p>Jeder Konfliktstil kann zwischen 6 und 42 Punkten liegen.</p>
+<div id="rows"></div><div class="winner" id="winner"></div>
+<p class="muted">Ein hoher Wert bedeutet, dass du diesen Konfliktstil häufiger angibst. Kein Stil ist grundsätzlich gut oder schlecht – je nach Situation können unterschiedliche Strategien sinnvoll sein.</p>
+<button onclick="restart()">Noch einmal ausfüllen</button>
+</section>
+</div>
+
+<script>
+const qs=[
+"Manchmal überlasse ich es lieber anderen, ein Problem zu lösen.",
+"Ich betone lieber, worin wir uns einig sind, als darüber zu diskutieren, worin wir unterschiedlicher Meinung sind.",
+"Ich suche eine Lösung, mit der wir beide zufrieden sind.",
+"Ich versuche, alle Anliegen von mir und der anderen Person zu behandeln.",
+"Ich verfolge meine Ziele normalerweise hart.",
+"Mir ist wichtig, dass es der anderen Person gut geht und unsere Beziehung gut bleibt.",
+"Manchmal opfere ich meine eigenen Wünsche für die andere Person.",
+"Ich versuche, die andere Person bei der Suche nach einer Lösung einzubinden.",
+"Ich tue, was notwendig ist, um stressigen Situationen auszuweichen.",
+"Ich versuche, unangenehme Situationen für mich zu vermeiden.",
+"Ich versuche, meine Position durchzusetzen.",
+"Ich versuche, konfliktträchtige Themen aufzuschieben, bis ich Zeit habe, darüber nachzudenken.",
+"Ich gebe manche Punkte im Austausch für andere auf.",
+"Über Unterschiede braucht man sich nicht immer Sorgen zu machen.",
+"Ich strenge mich an, um meine Ziele zu erreichen.",
+"Ich gebe bei einigen Positionen der anderen Person nach, wenn ich dafür einige von meinen Positionen behaupten kann.",
+"Ich schlage einen Kompromiss vor.",
+"Ich übe Druck aus, um meine Punkte durchzusetzen.",
+"Ich kläre die andere Person über meine Ideen auf und ersuche sie, dasselbe zu tun.",
+"Ich versuche, die Gefühle der anderen Person nicht zu verletzen.",
+"Wenn es die andere Person glücklich macht, lasse ich sie auch Ansichten vertreten, die ich nicht teile.",
+"Ich versuche, manche Streitfragen aufzuschieben, bis ich bereit bin, die Sache anzugehen.",
+"Ich kümmere mich darum, dass wir gemeinsam die Schwierigkeiten lösen.",
+"Ich versuche, eine faire Kombination von Gewinn und Verlust für beide zu erreichen.",
+"Bei Verhandlungen versuche ich, auf die Wünsche der anderen Person Rücksicht zu nehmen.",
+"Bei Verhandlungen mache ich mir große Mühe, die Wünsche der anderen Person zu verstehen.",
+"Ich setze meine Wünsche durch.",
+"Ich versuche, die andere Person zu einem Kompromiss zu bewegen.",
+"Ich versuche, der anderen Person die Logik und die Vorteile meiner Position aufzuzeigen.",
+"Ich teile immer das Problem mit der anderen Person, sodass wir es gemeinsam lösen können."
+];
+const styles={
+"Nachgeben":[2,6,7,20,21,25],
+"Vermeiden":[1,9,10,12,14,22],
+"Konkurrieren":[5,11,15,18,27,29],
+"Kompromisse eingehen":[3,13,16,17,24,28],
+"Zusammenarbeiten":[4,8,19,23,26,30]
+};
+const desc={
+"Nachgeben":"Du stellst die Wünsche oder Bedürfnisse der anderen Person häufig vor deine eigenen, um die Beziehung oder den Frieden zu erhalten.",
+"Vermeiden":"Du gehst Konflikten eher aus dem Weg oder verschiebst schwierige Themen, wenn dir die Situation unangenehm oder zu belastend erscheint.",
+"Konkurrieren":"Du setzt dich eher für deine eigenen Ziele und Positionen ein und versuchst, deine Wünsche durchzusetzen.",
+"Kompromisse eingehen":"Du suchst häufig nach einer Lösung, bei der beide Seiten etwas bekommen, aber auch etwas nachgeben.",
+"Zusammenarbeiten":"Du versuchst, die Anliegen beider Seiten zu verstehen und gemeinsam eine Lösung zu finden, mit der beide möglichst zufrieden sind."
+};
+let a=Array(30).fill(null),i=0;
+function start(){intro.style.display="none";quiz.style.display="block";render()}
+function render(){
+counter.textContent="Frage "+(i+1)+" von 30";prog.style.width=((i+1)/30*100)+"%";q.innerHTML=(i+1)+". "+qs[i];err.textContent="";
+choices.innerHTML=[1,2,3,4,5,6,7].map(n=>`<span><input type="radio" name="x" id="x${n}" ${a[i]===n?"checked":""} onchange="a[i]=${n}"><label for="x${n}">${n}</label></span>`).join("");
+next.textContent=i===29?"Auswertung anzeigen":"Weiter";
+}
+function next(){if(a[i]===null){err.textContent="Bitte wähle eine Zahl von 1 bis 7.";return}if(i<29){i++;render();scrollTo(0,0)}else result()}
+function prev(){if(i>0){i--;render();scrollTo(0,0)}}
+function result(){
+let s={};for(let k in styles)s[k]=styles[k].reduce((t,n)=>t+a[n-1],0);
+let sorted=Object.entries(s).sort((x,y)=>y[1]-x[1]);
+rows.innerHTML=sorted.map(x=>`<div class="row"><div class="head"><span>${x[0]}</span><span>${x[1]} / 42</span></div><div class="bar"><div style="width:${x[1]/42*100}%"></div></div></div>`).join("");
+let max=sorted[0][1],w=sorted.filter(x=>x[1]===max).map(x=>x[0]);
+winner.innerHTML=`<h2>${w.length===1?"Dein stärkster Konfliktstil: "+w[0]:"Deine stärksten Konfliktstile: "+w.join(" und ")}</h2><p>${desc[w[0]]}</p>`;
+quiz.style.display="none";results.style.display="block";scrollTo(0,0);
+}
+function restart(){a=Array(30).fill(null);i=0;results.style.display="none";quiz.style.display="block";render()}
+</script>
+</body>
+</html>
